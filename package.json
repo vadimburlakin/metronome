@@ -9,6 +9,7 @@
     "@material-ui/lab": "^4.0.0-alpha.18",
     "express": "^4.17.1",
     "gh-pages": "^2.0.1",
+    "howler": "^2.1.2",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-scripts": "3.0.1"
