@@ -9,10 +9,17 @@ import {
   Grid,
   TextField,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  ExpansionPanel,
+  ExpansionPanelDetails,
+  ExpansionPanelSummary
 } from '@material-ui/core';
 
-import { PlayCircleFilled, PauseCircleFilled } from '@material-ui/icons';
+import {
+  PlayCircleFilled,
+  PauseCircleFilled,
+  ExpandMore
+} from '@material-ui/icons';
 
 import Slider from '@material-ui/lab/Slider';
 const PrettoSlider = withStyles({
@@ -69,6 +76,9 @@ const styles = theme => ({
   },
   mediumSpacing: {
     marginTop: '35px'
+  },
+  controlButtons: {
+    fontSize: '5rem'
   }
 });
 
@@ -78,14 +88,15 @@ class App extends Component {
 
     this.state = {
       isPlaying: false,
-      bpm: 60,
-      newBpm: 60,
+      actualBpm: 60,
+      desiredBpm: 60,
       isProgressive: false,
       startValue: 40,
       endValue: 80,
       step: 5,
       delay: 30,
-      currentTick: 0
+      currentTick: 0,
+      isSettingsOpen: document.documentElement.clientWidth > 600
     };
 
     this.tickNormal = new Audio('data:audio/flac;base64, ZkxhQwAAACIQABAAAARBAARBAfQBcAAAAZLfwZb9QVlTtnnZLOsaWczxhAAAKCAAAAByZWZlcmVuY2UgbGliRkxBQyAxLjMuMCAyMDEzMDUyNgAAAAD/+HQMAAGRJhgKxHRX63x+6QxXqTpCYAANDJgITNAmIhAB/5BgFt4iAfgBZHY4A9UZAAZ65QManTnQUAKnx8A+ZcwFun6gX1gMVIgAfaXgEml9KIzgfUBYAnhLwJl/Oek+A5rZADhx2ApN3s198CTrfAPyHMGRV3DcKAYAAwBJ7uA8wysUF8HYV6AUyIIKv/ObD0B7BRAOf6QFVnlVIrg0zuwGYTqCTP9rJXAWm4AC1HQDxVMnllwVg94CGPDDq6XrJRgQ2zwHp6wGR5tQFGh9dygZtwIXeHNK+AHAw8BZ34BSgBUY44Ze3IEt2uEhBfQg3BcaTA+MSB/rIUTNIUTWYN9hMdT2M/TYEg+cDC6KGzFJQAzj8TBBUujjHFLnsqB07TAj7JBa4qTwQY15pQ9rKxSdhzrJwxaKA3o/BKIsTkDYtGCwxtDRCIqzegQo2pAr9KD0mKmwtRJeuhMscnKzjNLLCC4CCDoYNaPiZmNPNIsdzTJkF0zHIRyDGDZzCLozKYLfNVZUYt6pWUiy7/Bjf5CyRUJ95iW1TLkIET7MJJU5yxARVwzCNBsIZHCVflJ5ZE+0K30dXKabEjNYdP+TulglDBSFPJNlCtxqLycmj5OeMkURsMFSXgrtnXLllFm5cySbjiZQKoshh0ASOArXdBJuJ9c2syJBjM8II1VJYFtSEVbCw3f80qnABkAClxxw8mPk8NdHt4q9gNy0UpWEuO2UUx3jZSuRqVkcoWnWIWa1ahV3Y3K5KbKMH879vqjUtUZMatwgfZeOMvsQlyisbQ71rIxGX9FhUSYvRHvF3xeunSYfQ4iRItSvuvzR5iO3xDFaEdARSGOC1fGIpY/hll/Z8dBI+J6u22KvVuDK2IiXW9V8Htkhxa94kLDPz25hsMC8qImvymxd70W8D5iDfsU9TYMYt5EIfJnAWr0bS7NbeHbQu6ZsuZyvTuhwMbc9XFv3q4b4amazBWwDvKfuyGSBrwrbr8+kkvhfZKs7C2FwoVooWXOnr/sWmZ5hWFSSpEtq0O6bjQhPR6Eguo8PmOz4SoKeIgpRmJZ1CEWpm1U6F/2UKJhBBJi0KeJ6kgEoPCeWSBmv85AOeDhOk/mJgciON6g0DZHbeVa7jIhYMBSP4ukvNIr36CvTjhkZCkWJk5godIxpiOjqiEnoJQ2K3HjKtYcY2CFWiXpIrqaGEIgef4gs+JXnhRm4GziHB2h/OIRB6BgfhgH4ap2DiTgVwIUN6FjaguFoE0uENThJRYJMOBCwg3zIOyKB00gOl4LXWC79gW14DOaCQAglUoEKCApZgc1YHC2AxzgJBoFcSBWWgICoBp+BEXgO64BeGAXYgMGoCoCAOYgEk4CGWAb5gB54A2SAWGgEfoAHyAINgDuYAkeAAbgBfoAgyAEEgAC4ARGADPgAf4AFyABYgAeIACGAAMgAaYAECABJgAagfd0=');
@@ -105,9 +116,9 @@ class App extends Component {
       currentTick: this.state.currentTick + 1
     });
 
-    if (this.state.newBpm !== this.state.bpm) {
+    if (this.state.desiredBpm !== this.state.actualBpm) {
       this.setState({
-        bpm: this.state.newBpm
+        actualBpm: this.state.desiredBpm
       }, this.resetTimer);
     }
   }
@@ -116,10 +127,10 @@ class App extends Component {
     if (!this.state.isProgressive) return;
     if (!this.state.isPlaying) return;
 
-    if (this.state.bpm < this.state.endValue) {
-      const increment = Math.min(this.state.step, this.state.endValue - this.state.bpm);
+    if (this.state.actualBpm < this.state.endValue) {
+      const increment = Math.min(this.state.step, this.state.endValue - this.state.actualBpm);
       this.setState({
-        newBpm: this.state.bpm + increment
+        desiredBpm: this.state.actualBpm + increment
       });
     }
   }
@@ -129,7 +140,7 @@ class App extends Component {
       clearInterval(this._tickInterval);
     }
 
-    this._tickInterval = setInterval(this.tick, Math.ceil(60 / this.state.bpm * 1000));
+    this._tickInterval = setInterval(this.tick, Math.ceil(60 / this.state.actualBpm * 1000));
   }
 
   resetProgressiveTimer = () => {
@@ -142,11 +153,11 @@ class App extends Component {
 
   handleChangeProgressive = (event) => {
     const progressiveEnabled = !this.state.isProgressive;
-    let newBpm = this.state.newBpm;
-    if (progressiveEnabled) newBpm = this.state.startValue;
+    let desiredBpm = this.state.desiredBpm;
+    if (progressiveEnabled) desiredBpm = this.state.startValue;
     this.setState({
       isProgressive: progressiveEnabled,
-      newBpm
+      desiredBpm
     }, () => {
       if (progressiveEnabled) this.resetProgressiveTimer();
     });
@@ -185,8 +196,11 @@ class App extends Component {
   }
 
   handleStartPlaying = () => {
+    let desiredBpm = this.state.desiredBpm;
+    if (this.state.isProgressive) desiredBpm = this.state.startValue;
     this.setState({
-      isPlaying: true
+      isPlaying: true,
+      desiredBpm
     });
   }
 
@@ -196,15 +210,15 @@ class App extends Component {
     });
   }
 
-  // handleSliderChanged = (event, value) => {
-  //   this.setState({
-  //     sliderValue: value
-  //   });
-  // }
-
   handleSetBpm = (event, value) => {
     this.setState({
-      newBpm: value
+      desiredBpm: value
+    });
+  }
+
+  handleToggleSettings = () => {
+    this.setState({
+      isSettingsOpen: !this.state.isSettingsOpen
     });
   }
 
@@ -212,13 +226,13 @@ class App extends Component {
     if (this.state.isPlaying) {
       return (
         <IconButton color="primary" onClick={this.handleStopPlaying}>
-          <PauseCircleFilled fontSize="large" />
+          <PauseCircleFilled classes={{root: this.props.classes.controlButtons}} fontSize="large" />
         </IconButton>
       );
     } else {
       return (
         <IconButton color="primary" onClick={this.handleStartPlaying}>
-          <PlayCircleFilled fontSize="large" />
+          <PlayCircleFilled classes={{root: this.props.classes.controlButtons}} fontSize="large" />
         </IconButton>
       );
     }
@@ -237,77 +251,88 @@ class App extends Component {
           <div className={classes.smallSpacing}></div>
           <div>
             <Typography component="h1" variant="h4" display="inline" classes={{h4: classes.bpmValue}}>
-              {this.state.newBpm}
+              {this.state.desiredBpm}
             </Typography>
             <Typography component="h1" variant="h6" display="inline">
               BPM
             </Typography>
           </div>
-          <PrettoSlider valueLabelDisplay="auto" value={this.state.newBpm} min={35} max={180} onChange={this.handleSetBpm} />
+          <PrettoSlider value={this.state.desiredBpm} min={35} max={180} onChange={this.handleSetBpm} />
           <div className={classes.mediumSpacing}></div>
-          <form className={classes.form} noValidate>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={<Checkbox checked={this.state.isProgressive} onChange={this.handleChangeProgressive} value="progressiveMetronome" color="primary" />}
-                  label="Progressive metronome"
-                />
-              </Grid>
-              <Grid item xs={12} sm={3}>
-                <TextField
-                  name="startValue"
-                  type="number"
-                  variant="outlined"
-                  fullWidth
-                  id="startValue"
-                  label="Start"
-                  autoFocus
-                  value={this.state.startValue}
-                  onChange={this.handleChangeStartValue}
-                />
-              </Grid>
-              <Grid item xs={12} sm={3}>
-                <TextField
-                  name="endValue"
-                  type="number"
-                  variant="outlined"
-                  fullWidth
-                  id="endValue"
-                  label="End"
-                  autoFocus
-                  value={this.state.endValue}
-                  onChange={this.handleChangeEndValue}
-                />
-              </Grid>
-              <Grid item xs={12} sm={3}>
-                <TextField
-                  name="step"
-                  type="number"
-                  variant="outlined"
-                  fullWidth
-                  id="step"
-                  label="Step"
-                  autoFocus
-                  value={this.state.step}
-                  onChange={this.handleChangeStep}
-                />
-              </Grid>
-              <Grid item xs={12} sm={3}>
-                <TextField
-                  name="delay"
-                  type="number"
-                  variant="outlined"
-                  fullWidth
-                  id="delay"
-                  label="Delay"
-                  autoFocus
-                  value={this.state.delay}
-                  onChange={this.handleChangeDelay}
-                />
-              </Grid>
-            </Grid>
-          </form>
-          <div className={classes.mediumSpacing}></div>
+          <ExpansionPanel expanded={this.state.isSettingsOpen} onChange={this.handleToggleSettings}>
+            <ExpansionPanelSummary
+              expandIcon={<ExpandMore />}
+              aria-controls="panel1bh-content"
+              id="panel1bh-header"
+            >
+              <Typography className={classes.heading}>Settings</Typography>
+            </ExpansionPanelSummary>
+            <ExpansionPanelDetails>
+              <form className={classes.form} noValidate>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <FormControlLabel
+                      control={<Checkbox checked={this.state.isProgressive} onChange={this.handleChangeProgressive} value="progressiveMetronome" color="primary" />}
+                      label="Increase speed"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      name="startValue"
+                      type="number"
+                      variant="outlined"
+                      fullWidth
+                      id="startValue"
+                      label="Start"
+                      autoFocus
+                      value={this.state.startValue}
+                      onChange={this.handleChangeStartValue}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      name="endValue"
+                      type="number"
+                      variant="outlined"
+                      fullWidth
+                      id="endValue"
+                      label="End"
+                      autoFocus
+                      value={this.state.endValue}
+                      onChange={this.handleChangeEndValue}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      name="step"
+                      type="number"
+                      variant="outlined"
+                      fullWidth
+                      id="step"
+                      label="Step"
+                      autoFocus
+                      value={this.state.step}
+                      onChange={this.handleChangeStep}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      name="delay"
+                      type="number"
+                      variant="outlined"
+                      fullWidth
+                      id="delay"
+                      label="Delay"
+                      autoFocus
+                      value={this.state.delay}
+                      onChange={this.handleChangeDelay}
+                    />
+                  </Grid>
+                </Grid>
+              </form>
+            </ExpansionPanelDetails>
+          </ExpansionPanel>
+          <div className={classes.smallSpacing}></div>
           {this.renderControls()}
         </div>
       </Container>
